@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angels Programming — Projects</title>
+    <meta name="description" content="A collection of programming projects by Angel.">
+    <style>
+        /* Page reset and typography */
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #fff;
+            background: #111;
+        }
+
+        /* Background container with image and overlay */
+        .bg {
+            position: relative;
+            min-height: 40vh;
+            background-image: url('https://i.pinimg.com/736x/ce/bb/f9/cebbf9466146e358dcc98ed22640855a.jpg'); /* replace with your image path or absolute URL */
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        /* Dark overlay so text stays readable */
+        .bg::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            pointer-events: none;
+        }
+
+        .content {
+            position: relative;
+            padding: 2rem;
+            max-width: 900px;
+            z-index: 1;
+        }
+
+        h1 { margin: 0 0 0.5rem 0; font-size: clamp(1.6rem, 4vw, 3rem); }
+        p.lead { margin: 0; font-size: clamp(1rem, 2.2vw, 1.25rem); opacity: 0.95; }
+        a.btn { display:inline-block; margin-top:1rem; padding:0.5rem 1rem; background:green; color:#fff; border-radius:6px; text-decoration:none; }
+
+        /* Hangman UI styles */
+        #game { color: #fff; }
+        #hangman-stage { white-space: pre; font-family: monospace; color:#fff; }
+        #keyboard button { background: rgba(255,255,255,0.08); color:#fff; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; }
+        #keyboard button:disabled { opacity:0.5; cursor:default; }
+
+        @media (max-width: 480px) { .content { padding: 1rem; } }
+    </style>
+</head>
+<body>
+    <div class="bg">
+        <div class="content">
+            <h1>Angels Programming Projects</h1>
+            <p class="lead">A small collection of projects, demos, and experiments.</p>
+            <a class="btn" href="#projects">View projects</a>
+        </div>
+    </div>
+
+    <!-- Hangman game section -->
+    <section id="projects" style="padding:2rem;">
+        <div style="max-width:900px;margin:0 auto;background:rgba(255,255,255,0.03);padding:1rem;border-radius:8px;">
+            <h2 style="color:#fff;margin-top:0;">Hangman</h2>
+            <div id="game">
+                <pre id="hangman-stage" style="text-align:left;background:transparent;border:0;margin:0 0 1rem 0;line-height:1;font-size:0.9rem;"> </pre>
+                <div id="word" style="font-size:1.6rem;letter-spacing:0.15em;margin-bottom:0.75rem;"></div>
+                <div id="message" style="min-height:1.2rem;color:#ffd; margin-bottom:0.5rem;"></div>
+                <div id="keyboard" style="display:flex;flex-wrap:wrap;gap:6px;max-width:520px;margin-bottom:0.75rem;"></div>
+                <div style="color:#fff;margin-bottom:0.5rem;">Guessed: <span id="guessed">None</span></div>
+                <div style="color:#fff;margin-bottom:0.75rem;">Remaining guesses: <span id="remaining"></span></div>
+                <button id="restart" style="padding:0.4rem 0.8rem;border-radius:6px;border:0;background:#28a745;color:#fff;">Restart</button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    (function(){
+        // Words array (same as your Python list) - uppercase for simplicity
+        const words = ["PYTHON","PROGRAMMING","COMPUTER","DEVELOPER","CHALLENGE","ALGORITHM","VARIABLE","FUNCTION"];
+        const maxIncorrect = 6;
+        const stages = [
+`\n   -----\n   |   |\n       |\n       |\n       |\n       |\n---------\n`,
+`\n   -----\n   |   |\n   O   |\n       |\n       |\n       |\n---------\n`,
+`\n   -----\n   |   |\n   O   |\n   |   |\n       |\n       |\n---------\n`,
+`\n   -----\n   |   |\n   O   |\n  /|   |\n       |\n       |\n---------\n`,
+`\n   -----\n   |   |\n   O   |\n  /|\\  |\n       |\n       |\n---------\n`,
+`\n   -----\n   |   |\n   O   |\n  /|\\  |\n  /    |\n       |\n---------\n`,
+`\n   -----\n   |   |\n   O   |\n  /|\\  |\n  / \\  |\n       |\n---------\n`
+        ];
+
+        let word = '';
+        let guessed = new Set();
+        let incorrect = 0;
+
+        const elStage = document.getElementById('hangman-stage');
+        const elWord = document.getElementById('word');
+        const elKeyboard = document.getElementById('keyboard');
+        const elGuessed = document.getElementById('guessed');
+        const elRemaining = document.getElementById('remaining');
+        const elMessage = document.getElementById('message');
+        const btnRestart = document.getElementById('restart');
+
+        function newGame(){
+            word = words[Math.floor(Math.random()*words.length)];
+            guessed = new Set();
+            incorrect = 0;
+            renderKeyboard();
+            update();
+            elMessage.textContent = '';
+        }
+
+        function renderKeyboard(){
+            elKeyboard.innerHTML = '';
+            for(let i=65;i<=90;i++){
+                const letter = String.fromCharCode(i);
+                const btn = document.createElement('button');
+                btn.textContent = letter;
+                btn.style.padding = '0.4rem 0.6rem';
+                btn.style.borderRadius = '6px';
+                btn.style.border = '0';
+                btn.style.background = 'rgba(255,255,255,0.08)';
+                btn.style.color = '#fff';
+                btn.style.cursor = 'pointer';
+                btn.onclick = () => { handleGuess(letter, btn); };
+                elKeyboard.appendChild(btn);
+            }
+        }
+
+        function handleGuess(letter, btn){
+            if(guessed.has(letter) || isFinished()) return;
+            guessed.add(letter);
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            if(word.includes(letter)){
+                elMessage.textContent = 'Correct!';
+                elMessage.style.color = '#bdf7bd';
+            } else {
+                incorrect += 1;
+                elMessage.textContent = 'Incorrect.';
+                elMessage.style.color = '#f7bdbd';
+            }
+            update();
+        }
+
+        function update(){
+            // Show current hangman stage (based on incorrect guesses)
+            elStage.textContent = stages[incorrect];
+
+            // Show word with blanks
+            let made = true;
+            const parts = [];
+            for(const ch of word){
+                if(ch === ' '){ parts.push(' '); continue; }
+                if(guessed.has(ch)){
+                    parts.push(ch);
+                } else { parts.push('_'); made = false; }
+            }
+            elWord.textContent = parts.join(' ');
+
+            // Guessed letters
+            const guessedArr = Array.from(guessed).sort();
+            elGuessed.textContent = guessedArr.length ? guessedArr.join(', ') : 'None';
+
+            // Remaining guesses
+            elRemaining.textContent = (maxIncorrect - incorrect);
+
+            if(made){
+                elMessage.textContent = 'You won! 🎉 The word was: ' + word;
+                elMessage.style.color = '#bdf7bd';
+                disableAllKeys();
+            } else if(incorrect >= maxIncorrect){
+                elMessage.textContent = 'You lost. The word was: ' + word;
+                elMessage.style.color = '#f7bdbd';
+                elWord.textContent = word.split('').join(' ');
+                disableAllKeys();
+            }
+        }
+
+        function disableAllKeys(){
+            const buttons = elKeyboard.querySelectorAll('button');
+            buttons.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+        }
+
+        function isFinished(){
+            return incorrect >= maxIncorrect || Array.from(word).every(ch => ch === ' ' || guessed.has(ch));
+        }
+
+        btnRestart.addEventListener('click', newGame);
+
+        // Start the first game
+        newGame();
+    })();
+    </script>
+</body>
+</html>
